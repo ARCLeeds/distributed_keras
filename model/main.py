@@ -67,4 +67,4 @@ train_dataset, val_dataset, test_dataset = get_dataset()
 
 model.fit(train_dataset, epochs=2, validation_data=val_dataset)
 
-model.evaludate(test_dataset)
+model.evaluate(test_dataset)
