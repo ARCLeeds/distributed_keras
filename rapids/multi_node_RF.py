@@ -22,7 +22,7 @@ import dask_cudf
 from cuml.dask.ensemble import RandomForestClassifier as cumlDaskRF
 from sklearn.ensemble import RandomForestClassifier as sklRF
 
-def main():
+if __name__ == "__main__":
     ## using dask to setup cluster
 
     # This will use all GPUs on the local host by default
@@ -101,6 +101,3 @@ def main():
     # Due to randomness in the algorithm, you may see slight variation in accuracies
     print("SKLearn accuracy:  ", accuracy_score(y_test, skl_y_pred))
     print("CuML accuracy:     ", accuracy_score(y_test, cuml_y_pred))
-
-if __name__ == "__main__":
-    main()
