@@ -10,6 +10,7 @@ import time
 import pandas as pd
 import cudf
 import cuml
+import os
 
 from sklearn.metrics import accuracy_score
 from sklearn import model_selection, datasets
@@ -26,7 +27,8 @@ if __name__ == "__main__":
     ## using dask to setup cluster
 
     # This will use all GPUs on the local host by default
-    cluster = LocalCUDACluster(threads_per_worker=1)
+    # set this to use on node disk for caching
+    cluster = LocalCUDACluster(local_dir=os.environ['TMPDIR'], threads_per_worker=1)
     c = Client(cluster)
 
     # Query the client for all connected workers
