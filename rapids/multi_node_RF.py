@@ -86,7 +86,7 @@ if __name__ == "__main__":
     ## fit model using Dask cuML
     t0 = time.time()
     cuml_model = cumlDaskRF(max_depth=max_depth, n_estimators=n_trees, n_bins=n_bins, n_streams=n_streams)
-    cuml_model.fit(X_train_dask, y_train_dask)
+    cuml_model.fit(X_train_dask, y_train_dask, convert_dtype=True)
 
     wait(cuml_model.rfs) # Allow asynchronous training tasks to finish
     t1 = time.time()
