@@ -60,8 +60,8 @@ if __name__ == "__main__":
     n_partitions = n_workers
 
     # First convert to cudf (with real data, you would likely load in cuDF format to start)
-    X_train_cudf = cudf.DataFrame.from_pandas(pd.DataFrame(X_train))
-    y_train_cudf = cudf.Series(y_train)
+    X_train_cudf = cudf.DataFrame.from_pandas(pd.DataFrame(X_train)).astype(np.float32)
+    y_train_cudf = cudf.Series(y_train).astype(np.float32)
 
     # Partition with Dask
     # In this case, each worker will train on 1/n_partitions fraction of the data
