@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     # This will use all GPUs on the local host by default
     # set this to use on node disk for caching
-    cluster = LocalCUDACluster(local_dir=os.environ['TMPDIR'], threads_per_worker=1)
+    cluster = LocalCUDACluster(local_directory=os.environ['TMPDIR'], threads_per_worker=1)
     c = Client(cluster)
 
     # Query the client for all connected workers
@@ -56,6 +56,7 @@ if __name__ == "__main__":
     X, y = datasets.make_classification(n_samples=n_samples, n_features=n_features,
                                     n_clusters_per_class=1, n_informative=int(n_features / 3),
                                     random_state=123, n_classes=5)
+    X = X.astype(np.float32)
     y = y.astype(np.int32)
     X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size=test_size)
 
