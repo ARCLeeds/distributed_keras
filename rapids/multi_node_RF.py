@@ -1,6 +1,6 @@
 """
 Multi node GPU based random forest using Nvidia RAPIDS
-Adapted from https://github.com/rapidsai/cuml/blob/branch-0.13/notebooks/random_forest_mnmg_demo.ipynb
+Adapted from https://github.com/rapidsai/cuml/blob/branch-0.17/notebooks/random_forest_mnmg_demo.ipynb
 """
 
 import numpy as np
@@ -10,7 +10,6 @@ import time
 import pandas as pd
 import cudf
 import cuml
-import os
 
 from sklearn.metrics import accuracy_score
 from sklearn import model_selection, datasets
@@ -23,12 +22,30 @@ import dask_cudf
 from cuml.dask.ensemble import RandomForestClassifier as cumlDaskRF
 from sklearn.ensemble import RandomForestClassifier as sklRF
 
+
+def distribute(X, y):
+    # First convert to cudf (with real data, you would likely load in cuDF format to start)
+    X_cudf = cudf.DataFrame.from_pandas(pd.DataFrame(X))
+    y_cudf = cudf.Series(y)
+
+    # Partition with Dask
+    # In this case, each worker will train on 1/n_partitions fraction of the data
+    X_dask = dask_cudf.from_cudf(X_cudf, npartitions=n_partitions)
+    y_dask = dask_cudf.from_cudf(y_cudf, npartitions=n_partitions)
+
+    # Persist to cache the data in active memory
+    X_dask, y_dask = \
+      dask_utils.persist_across_workers(c, [X_dask, y_dask], workers=workers)
+    
+    return X_dask, y_dask
+
+
 if __name__ == "__main__":
     ## using dask to setup cluster
 
     # This will use all GPUs on the local host by default
     # set this to use on node disk for caching
-    cluster = LocalCUDACluster(local_directory=os.environ['TMPDIR'], threads_per_worker=1)
+    cluster = LocalCUDACluster(threads_per_worker=1)
     c = Client(cluster)
 
     # Query the client for all connected workers
@@ -61,22 +78,14 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size=test_size)
 
     n_partitions = n_workers
+    X_train_dask, y_train_dask = distribute(X_train, y_train)
+    X_test_dask, y_test_dask = distribute(X_test, y_test)
 
     # First convert to cudf (with real data, you would likely load in cuDF format to start)
     X_train_cudf = cudf.DataFrame.from_pandas(pd.DataFrame(X_train))
     y_train_cudf = cudf.Series(y_train)
 
-    # Partition with Dask
-    # In this case, each worker will train on 1/n_partitions fraction of the data
-    X_train_dask = dask_cudf.from_cudf(X_train_cudf, npartitions=n_partitions)
-    y_train_dask = dask_cudf.from_cudf(y_train_cudf, npartitions=n_partitions)
 
-    # Persist to cache the data in active memory
-    X_train_dask, y_train_dask = \
-      dask_utils.persist_across_workers(c, [X_train_dask, y_train_dask], workers=workers)
-
-    # do this model fit with cpus using sklearn
-    # Use all avilable CPU cores
     t0 = time.time()
     skl_model = sklRF(max_depth=max_depth, n_estimators=n_trees, n_jobs=-1)
     skl_model.fit(X_train, y_train)
@@ -86,10 +95,9 @@ if __name__ == "__main__":
 
     print(f"CPU model fit took: {cpu_time}.")
 
-    ## fit model using Dask cuML
     t0 = time.time()
     cuml_model = cumlDaskRF(max_depth=max_depth, n_estimators=n_trees, n_bins=n_bins, n_streams=n_streams)
-    cuml_model.fit(X_train_dask, y_train_dask, convert_dtype=True)
+    cuml_model.fit(X_train_dask, y_train_dask)
 
     wait(cuml_model.rfs) # Allow asynchronous training tasks to finish
     t1 = time.time()
@@ -99,8 +107,9 @@ if __name__ == "__main__":
 
     ## compare accuracy
     skl_y_pred = skl_model.predict(X_test)
-    cuml_y_pred = cuml_model.predict(X_test)
+    cuml_y_pred = cuml_model.predict(X_test_dask)
 
     # Due to randomness in the algorithm, you may see slight variation in accuracies
     print("SKLearn accuracy:  ", accuracy_score(y_test, skl_y_pred))
-    print("CuML accuracy:     ", accuracy_score(y_test, cuml_y_pred))
+    print("CuML accuracy:     ", accuracy_score(y_test_dask, cuml_y_pred))
+    print("Model comparison finished.")
