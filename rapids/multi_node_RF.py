@@ -111,5 +111,5 @@ if __name__ == "__main__":
 
     # Due to randomness in the algorithm, you may see slight variation in accuracies
     print("SKLearn accuracy:  ", accuracy_score(y_test, skl_y_pred))
-    print("CuML accuracy:     ", accuracy_score(y_test_dask, cuml_y_pred))
+    print("CuML accuracy:     ", accuracy_score(y_test_dask.to_matrix(), cuml_y_pred.to_matrix()))
     print("Model comparison finished.")
