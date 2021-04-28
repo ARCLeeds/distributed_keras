@@ -1,0 +1,7 @@
+name: rapids
+channels:
+  - defaults
+dependencies:
+  - python=3.7
+  - cudatoolkit=11.0
+  - rapids-blazing=0.19
