@@ -1,0 +1,7 @@
+# conda environment file for bede
+name: rapids
+channels:
+  - https://public.dhe.ibm.com/ibmdl/export/pub/software/server/ibm-ai/conda/
+  - defaults
+dependencies:
+  - powerai-rapids
